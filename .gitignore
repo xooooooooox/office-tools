@@ -1,0 +1,13 @@
+*.docx
+*.doc
+*.xls
+*.xlsx
+*.spec
+
+.DS_Store
+data
+
+.venv
+build
+dist
+.eggs
