@@ -53,7 +53,13 @@ excel 列名即为 [word 模板](#step1-准备-word-模板) 的占位符
 
 ### step3 使用 APP 批量生成诉讼书
 
-![](docs/office-tools-tutorial.mp4)
+![tutorial](docs/office-tools-tutorial.mp4)
+
+<video src="docs/office-tools-tutorial.mp4" width="320" height="240" controls>AA</video>
+
+<p align="center">
+  <video src="docs/office-tools-tutorial.mp4" width="500px">BB</video>
+</p>
 
 ### step4 效果截图
 
