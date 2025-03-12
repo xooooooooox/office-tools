@@ -4,6 +4,14 @@ import os
 import pandas as pd
 from docxtpl import DocxTemplate
 
+# 引入 court_match.py 中的功能
+from court_match import (
+    load_district_mapping,
+    load_addresses,
+    match_addresses_to_court,
+    save_results_to_csv
+)
+
 
 def generate_docs(template_path, excel_path, output_dir, progress_callback=None):
     """
@@ -61,18 +69,19 @@ def generate_docs(template_path, excel_path, output_dir, progress_callback=None)
         raise e
 
 
-class Application(tk.Frame):
-    """ 主 GUI 类 """
-
+class GenerateTab(tk.Frame):
+    """
+    原先的批量生成 Word 的功能，放到一个独立的 Tab 里
+    """
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
-        self.pack()
-        self.create_widgets()
 
         self.template_path = ""
         self.excel_path = ""
         self.output_dir = ""
+
+        self.create_widgets()
 
     def create_widgets(self):
         # 选择 Word 模板 按钮
@@ -96,10 +105,11 @@ class Application(tk.Frame):
         self.output_dir_label = tk.Label(self, text="未选择输出目录")
         self.output_dir_label.grid(row=2, column=1, padx=5, pady=5)
 
-        # 进度条相关
-        # -- 在这里先不对进度条调用 grid，以免一开始就显示 --
+        # 进度条
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(self, variable=self.progress_var, maximum=100)
+        # 一开始不显示，等点击“开始生成”再显示
+        # self.progress_bar.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="we")
 
         # 生成 按钮
         self.generate_btn = tk.Button(self, text="开始生成", command=self.start_generate)
@@ -134,7 +144,6 @@ class Application(tk.Frame):
             self.output_dir_label.config(text=dir_)
 
     def start_generate(self):
-        # 每次生成前清空状态信息
         self.status_text.delete("1.0", tk.END)
         self.progress_var.set(0)
 
@@ -142,7 +151,7 @@ class Application(tk.Frame):
             self.status_text.insert(tk.END, "请先选择 Word 模板、Excel 文件和输出目录！\n")
             return
 
-        # -- 只有在点击开始生成按钮后，才将进度条放到界面上 --
+        # 点击“开始生成”后再将进度条放到界面上
         self.progress_bar.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="we")
 
         def progress_callback(current, total):
@@ -165,13 +174,123 @@ class Application(tk.Frame):
             messagebox.showerror("错误", err_msg)
 
 
+class CourtMatchTab(tk.Frame):
+    """
+    新增的 '辖区法院匹配' 功能 Tab
+    """
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+
+        self.mapping_file = ""
+        self.address_file = ""
+        self.output_file = ""
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        # 选取“区划 CSV”按钮
+        self.select_mapping_btn = tk.Button(self, text="选取辖区法院明细 CSV", command=self.choose_mapping_file)
+        self.select_mapping_btn.grid(row=0, column=0, padx=5, pady=5)
+
+        self.mapping_label = tk.Label(self, text="未选择辖区法院明细 CSV")
+        self.mapping_label.grid(row=0, column=1, padx=5, pady=5)
+
+        # 选取“地址 TXT”按钮
+        self.select_address_btn = tk.Button(self, text="选取地址明细 TXT", command=self.choose_address_file)
+        self.select_address_btn.grid(row=1, column=0, padx=5, pady=5)
+
+        self.address_label = tk.Label(self, text="未选择地址明细 TXT")
+        self.address_label.grid(row=1, column=1, padx=5, pady=5)
+
+        # 选取“输出 CSV”按钮
+        self.select_output_btn = tk.Button(self, text="选择输出 CSV", command=self.choose_output_file)
+        self.select_output_btn.grid(row=2, column=0, padx=5, pady=5)
+
+        self.output_label = tk.Label(self, text="未选择输出文件")
+        self.output_label.grid(row=2, column=1, padx=5, pady=5)
+
+        # “开始匹配”按钮
+        self.match_btn = tk.Button(self, text="开始匹配", command=self.start_match)
+        self.match_btn.grid(row=3, column=0, columnspan=2, pady=10)
+
+        # 状态输出区
+        self.status_text = tk.Text(self, width=50, height=10)
+        self.status_text.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+
+    def choose_mapping_file(self):
+        path = filedialog.askopenfilename(
+            title="选取辖区法院明细 CSV 文件",
+            filetypes=[("CSV文件", "*.csv")],
+        )
+        if path:
+            self.mapping_file = path
+            self.mapping_label.config(text=os.path.basename(path))
+
+    def choose_address_file(self):
+        path = filedialog.askopenfilename(
+            title="选取地址明细 TXT 文件",
+            filetypes=[("文本文件", "*.txt")],
+        )
+        if path:
+            self.address_file = path
+            self.address_label.config(text=os.path.basename(path))
+
+    def choose_output_file(self):
+        path = filedialog.asksaveasfilename(
+            title="输出结果 CSV",
+            filetypes=[("CSV 文件", "*.csv")],
+            defaultextension=".csv"
+        )
+        if path:
+            self.output_file = path
+            self.output_label.config(text=os.path.basename(path))
+
+    def start_match(self):
+        # 每次点击前，清空状态信息
+        self.status_text.delete("1.0", tk.END)
+
+        if not (self.mapping_file and self.address_file and self.output_file):
+            self.status_text.insert(tk.END, "请先选择辖区明细 CSV、地址明细 TXT 和输出 CSV 路径！\n")
+            return
+
+        try:
+            # 1) 读取区划映射
+            district_to_court_map = load_district_mapping(self.mapping_file)
+            # 2) 读取地址
+            addresses = load_addresses(self.address_file)
+            # 3) 匹配
+            matched_results = match_addresses_to_court(addresses, district_to_court_map)
+            # 4) 保存
+            save_results_to_csv(matched_results, self.output_file)
+
+            msg = f"匹配完成，结果已写入 {self.output_file}"
+            self.status_text.insert(tk.END, msg + "\n")
+            messagebox.showinfo("提示", msg)
+        except Exception as e:
+            err_msg = f"匹配失败：{e}"
+            self.status_text.insert(tk.END, err_msg + "\n")
+            messagebox.showerror("错误", err_msg)
+
+
 def main():
     root = tk.Tk()
     root.title("office-tools")
-    # 在Mac上默认窗口可能比较小，可以手动设置大小
     root.geometry("600x400")
-    app = Application(master=root)
-    app.mainloop()
+
+    # 用 Notebook 管理多个 Tab
+    notebook = ttk.Notebook(root)
+    notebook.pack(fill="both", expand=True)
+
+    # 第一个 Tab：批量生成 Word
+    generate_tab = GenerateTab(notebook)
+    notebook.add(generate_tab, text="批量生成起诉状")
+
+    # 第二个 Tab：辖区法院匹配
+    court_match_tab = CourtMatchTab(notebook)
+    notebook.add(court_match_tab, text="辖区法院匹配")
+
+    root.mainloop()
 
 
 if __name__ == "__main__":
