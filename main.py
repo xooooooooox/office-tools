@@ -28,7 +28,8 @@ def generate_docs(template_path, excel_path, output_dir, progress_callback=None)
             raise NotADirectoryError("输出目录不存在！")
 
         # 读取 Excel（假设第一行是标题行，列名对应模板中的变量）
-        df = pd.read_excel(excel_path)
+        df = pd.read_excel(excel_path, dtype=str) # 将所有列都用字符串读入
+        df.fillna("", inplace=True) # 把所欲欧 NaN 变成空字符串
 
         # 加载 Word 模板
         doc = DocxTemplate(template_path)
@@ -41,6 +42,7 @@ def generate_docs(template_path, excel_path, output_dir, progress_callback=None)
             # 构建字典，key=列名, value=单元格内容
             context = {}
             for col in df.columns:
+                val = row[col]
                 context[col] = row[col]
 
             # 渲染模板
