@@ -3,6 +3,8 @@ from tkinter import ttk, filedialog, messagebox
 import os
 import pandas as pd
 from docxtpl import DocxTemplate
+import subprocess
+
 
 # 引入 court_match.py 中的功能
 from court_match import (
@@ -11,7 +13,6 @@ from court_match import (
     match_addresses_to_court,
     save_results_to_csv
 )
-
 
 def generate_docs(template_path, excel_path, output_dir, progress_callback=None):
     """
@@ -28,8 +29,8 @@ def generate_docs(template_path, excel_path, output_dir, progress_callback=None)
             raise NotADirectoryError("输出目录不存在！")
 
         # 读取 Excel（假设第一行是标题行，列名对应模板中的变量）
-        df = pd.read_excel(excel_path, dtype=str) # 将所有列都用字符串读入
-        df.fillna("", inplace=True) # 把所欲欧 NaN 变成空字符串
+        df = pd.read_excel(excel_path, dtype=str)  # 将所有列都以字符串方式读入
+        df.fillna("", inplace=True)  # 将所有的 NaN 变成空字符串
 
         # 加载 Word 模板
         doc = DocxTemplate(template_path)
@@ -39,17 +40,15 @@ def generate_docs(template_path, excel_path, output_dir, progress_callback=None)
         total = len(df)
 
         for idx, row in df.iterrows():
-            # 构建字典，key=列名, value=单元格内容
+            # 构建 context 字典：key=列名, value=单元格内容
             context = {}
             for col in df.columns:
-                val = row[col]
                 context[col] = row[col]
 
             # 渲染模板
             doc.render(context)
 
-            # 文件名列  - 假设用 Excel 中 “文件名” 这一列作为输出名
-            # 如果没有这个列，则自动根据 index 命名
+            # 文件名列 —— 这里假设 Excel 中有 “文件名” 列，如果没有就用 index 命名
             if "文件名" in df.columns and pd.notna(row["文件名"]):
                 doc_name = str(row["文件名"])
             else:
@@ -57,11 +56,11 @@ def generate_docs(template_path, excel_path, output_dir, progress_callback=None)
 
             row_index += 1
 
-            # 输出路径
+            # 保存文件路径
             save_path = os.path.join(output_dir, f"{doc_name}.docx")
             doc.save(save_path)
 
-            # 每处理完一条，更新进度
+            # 更新进度
             if progress_callback:
                 progress_callback(idx + 1, total)
 
@@ -73,7 +72,7 @@ def generate_docs(template_path, excel_path, output_dir, progress_callback=None)
 
 class GenerateTab(tk.Frame):
     """
-    原先的批量生成 Word 的功能，放到一个独立的 Tab 里
+    批量生成 Word 文档的功能 Tab
     """
     def __init__(self, master=None):
         super().__init__(master)
@@ -107,11 +106,9 @@ class GenerateTab(tk.Frame):
         self.output_dir_label = tk.Label(self, text="未选择输出目录")
         self.output_dir_label.grid(row=2, column=1, padx=5, pady=5)
 
-        # 进度条
+        # 进度条（默认未显示，开始生成后显示）
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(self, variable=self.progress_var, maximum=100)
-        # 一开始不显示，等点击“开始生成”再显示
-        # self.progress_bar.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="we")
 
         # 生成 按钮
         self.generate_btn = tk.Button(self, text="开始生成", command=self.start_generate)
@@ -124,7 +121,7 @@ class GenerateTab(tk.Frame):
     def choose_template(self):
         path = filedialog.askopenfilename(
             title="选择 Word 模板",
-            filetypes=[("Word 文件", "*.docx")],
+            filetypes=[("Word 文件", "*.docx")]
         )
         if path:
             self.template_path = path
@@ -133,7 +130,7 @@ class GenerateTab(tk.Frame):
     def choose_excel(self):
         path = filedialog.askopenfilename(
             title="选择 Excel 文件",
-            filetypes=[("Excel 文件", "*.xlsx *.xls")],
+            filetypes=[("Excel 文件", "*.xlsx *.xls")]
         )
         if path:
             self.excel_path = path
@@ -153,7 +150,7 @@ class GenerateTab(tk.Frame):
             self.status_text.insert(tk.END, "请先选择 Word 模板、Excel 文件和输出目录！\n")
             return
 
-        # 点击“开始生成”后再将进度条放到界面上
+        # 点击“开始生成”后显示进度条
         self.progress_bar.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="we")
 
         def progress_callback(current, total):
@@ -178,7 +175,7 @@ class GenerateTab(tk.Frame):
 
 class CourtMatchTab(tk.Frame):
     """
-    新增的 '辖区法院匹配' 功能 Tab
+    “辖区法院匹配”功能 Tab
     """
     def __init__(self, master=None):
         super().__init__(master)
@@ -223,7 +220,7 @@ class CourtMatchTab(tk.Frame):
     def choose_mapping_file(self):
         path = filedialog.askopenfilename(
             title="选取辖区法院明细 CSV 文件",
-            filetypes=[("CSV文件", "*.csv")],
+            filetypes=[("CSV文件", "*.csv")]
         )
         if path:
             self.mapping_file = path
@@ -232,7 +229,7 @@ class CourtMatchTab(tk.Frame):
     def choose_address_file(self):
         path = filedialog.askopenfilename(
             title="选取地址明细 TXT 文件",
-            filetypes=[("文本文件", "*.txt")],
+            filetypes=[("文本文件", "*.txt")]
         )
         if path:
             self.address_file = path
@@ -275,22 +272,109 @@ class CourtMatchTab(tk.Frame):
             messagebox.showerror("错误", err_msg)
 
 
+class ConversionTab(tk.Frame):
+    """
+    文件格式转换功能 Tab，用于将选中的 Word 文件（.doc 或 .docx）批量转换为 PDF
+    使用 LibreOffice 的命令行模式进行转换。
+    """
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+        self.word_files = []  # 待转换的文件列表
+        self.output_dir = ""
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.select_files_btn = tk.Button(self, text="选择 Word 文件", command=self.choose_word_files)
+        self.select_files_btn.grid(row=0, column=0, padx=5, pady=5)
+        self.files_label = tk.Label(self, text="未选择文件")
+        self.files_label.grid(row=0, column=1, padx=5, pady=5)
+
+        self.select_output_btn = tk.Button(self, text="选择输出目录", command=self.choose_output_dir)
+        self.select_output_btn.grid(row=1, column=0, padx=5, pady=5)
+        self.output_label = tk.Label(self, text="未选择输出目录")
+        self.output_label.grid(row=1, column=1, padx=5, pady=5)
+
+        self.convert_btn = tk.Button(self, text="开始转换", command=self.start_conversion)
+        self.convert_btn.grid(row=2, column=0, columnspan=2, pady=10)
+
+        self.progress_var = tk.DoubleVar(value=0)
+        self.progress_bar = ttk.Progressbar(self, variable=self.progress_var, maximum=100)
+
+        self.status_text = tk.Text(self, width=50, height=10)
+        self.status_text.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+
+    def choose_word_files(self):
+        files = filedialog.askopenfilenames(
+            title="选择 Word 文件",
+            filetypes=[("Word 文件", ("*.doc", "*.docx"))]
+        )
+        if files:
+            self.word_files = list(files)
+            display_names = [os.path.basename(f) for f in self.word_files]
+            self.files_label.config(text=", ".join(display_names))
+
+    def choose_output_dir(self):
+        dir_ = filedialog.askdirectory(title="选择输出目录")
+        if dir_:
+            self.output_dir = dir_
+            self.output_label.config(text=dir_)
+
+    def start_conversion(self):
+        self.status_text.delete("1.0", tk.END)
+        self.progress_var.set(0)
+        if not self.word_files or not self.output_dir:
+            self.status_text.insert(tk.END, "请先选择 Word 文件和输出目录！\n")
+            return
+
+        self.progress_bar.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="we")
+
+        total = len(self.word_files)
+        for idx, file in enumerate(self.word_files):
+            base_name = os.path.splitext(os.path.basename(file))[0]
+            pdf_file = os.path.join(self.output_dir, base_name + ".pdf")
+            try:
+                # 调用 LibreOffice 的命令行转换功能
+                # 注意：确保 “soffice” 命令可用，如需路径调整请修改此处
+                subprocess.run([
+                    "soffice",
+                    "--headless",
+                    "--convert-to", "pdf",
+                    file,
+                    "--outdir", self.output_dir
+                ], check=True)
+                self.status_text.insert(tk.END, f"已转换: {os.path.basename(file)} -> {base_name}.pdf\n")
+            except subprocess.CalledProcessError as e:
+                self.status_text.insert(tk.END, f"转换失败: {os.path.basename(file)}，错误信息: {e}\n")
+
+            progress_percentage = ((idx + 1) / total) * 100
+            self.progress_var.set(progress_percentage)
+            self.master.update_idletasks()
+
+        msg = f"转换完成，共转换 {total} 个文件！"
+        self.status_text.insert(tk.END, msg + "\n")
+        messagebox.showinfo("提示", msg)
+
+
 def main():
     root = tk.Tk()
     root.title("office-tools")
-    root.geometry("600x400")
+    root.geometry("600x450")
 
-    # 用 Notebook 管理多个 Tab
     notebook = ttk.Notebook(root)
     notebook.pack(fill="both", expand=True)
 
-    # 第一个 Tab：批量生成 Word
+    # Tab1: 批量生成起诉状
     generate_tab = GenerateTab(notebook)
     notebook.add(generate_tab, text="批量生成起诉状")
 
-    # 第二个 Tab：辖区法院匹配
+    # Tab2: 辖区法院匹配
     court_match_tab = CourtMatchTab(notebook)
     notebook.add(court_match_tab, text="辖区法院匹配")
+
+    # Tab3: 文件格式转换
+    conversion_tab = ConversionTab(notebook)
+    notebook.add(conversion_tab, text="文件格式转换")
 
     root.mainloop()
 
