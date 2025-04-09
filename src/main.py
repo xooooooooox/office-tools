@@ -19,7 +19,7 @@ from court_match import (
 from court_match_tab import CourtMatchTab
 # 引入自定义模块
 from generate_tab import GenerateTab
-from ui_styles import COLORS, FONTS
+from ui_styles import COLORS, FONTS, TAB_STYLE
 
 
 def setup_exception_logging():
@@ -130,10 +130,15 @@ def setup_styles(root):
 
     # 配置Notebook样式
     style.configure("TNotebook", background=COLORS["bg_light"], borderwidth=0)
-    style.configure("TNotebook.Tab", background=COLORS["secondary"], foreground=COLORS["white"],
-                    padding=[10, 5], font=FONTS["button"])
-    style.map("TNotebook.Tab", background=[("selected", COLORS["primary"])],
-              foreground=[("selected", COLORS["white"])])
+    style.configure("TNotebook.Tab",
+                    background=TAB_STYLE["background"],
+                    foreground=TAB_STYLE["foreground"],
+                    padding=TAB_STYLE["padding"],
+                    font=FONTS["button"])
+
+    style.map("TNotebook.Tab",
+              background=[("selected", TAB_STYLE["selected_background"])],
+              foreground=[("selected", TAB_STYLE["selected_foreground"])])
 
     # 配置进度条样式
     style.configure("Custom.TProgressbar",
@@ -152,7 +157,7 @@ def main():
     # 创建主窗口
     root = tk.Tk()
     root.title("Office Tools")
-    root.geometry("700x550")  # 稍微增大窗口尺寸
+    root.geometry("750x600")  # 增大窗口尺寸以适应更大的按钮
 
     # 设置应用程序样式
     setup_styles(root)
@@ -176,8 +181,8 @@ def main():
         title_label.pack(side=tk.LEFT)
 
         # 创建选项卡
-        notebook = ttk.Notebook(main_frame, style="TNotebook")
-        notebook.pack(fill=tk.BOTH, expand=True)
+        notebook = ttk.Notebook(main_frame)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Tab1: 批量生成起诉状
         generate_tab = GenerateTab(notebook, doc_generator=generate_docs)
@@ -195,16 +200,16 @@ def main():
         notebook.add(conversion_tab, text="文件格式转换")
 
         # 添加底部状态栏
-        footer_frame = tk.Frame(main_frame, bg=COLORS["bg_light"], padx=5, pady=5)
-        footer_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        footer_frame = tk.Frame(main_frame, bg=COLORS["light"], padx=10, pady=8, relief="groove", borderwidth=1)
+        footer_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=(10, 0))
 
         version_label = tk.Label(footer_frame, text="版本: 1.0.2",
-                                 fg=COLORS["secondary"], bg=COLORS["bg_light"],
+                                 fg=COLORS["secondary"], bg=COLORS["light"],
                                  font=FONTS["small"])
         version_label.pack(side=tk.RIGHT)
 
         copyright_label = tk.Label(footer_frame, text="© 2023 Office Tools",
-                                   fg=COLORS["secondary"], bg=COLORS["bg_light"],
+                                   fg=COLORS["secondary"], bg=COLORS["light"],
                                    font=FONTS["small"])
         copyright_label.pack(side=tk.LEFT)
 

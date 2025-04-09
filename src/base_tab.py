@@ -35,13 +35,19 @@ class BaseTab(tk.Frame):
     def create_file_selector(self, row, button_text, label_text, command, file_types=None):
         """创建文件选择器组件（按钮+标签）"""
         frame = tk.Frame(self, **STYLES["file_frame"])
-        frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=5, pady=8)
 
+        # 使用固定宽度的按钮
         button = tk.Button(frame, text=button_text, command=self.safe_execute(command), **STYLES["button"])
         button.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-        label = tk.Label(frame, text=label_text, anchor="w", **STYLES["label"])
-        label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        # 创建一个框架来包含标签，并设置固定宽度
+        label_frame = tk.Frame(frame, bg=COLORS["primary_light"])
+        label_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        frame.columnconfigure(1, weight=1)  # 让标签框架可以扩展
+
+        label = tk.Label(label_frame, text=label_text, anchor="w", **STYLES["label"])
+        label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         return button, label, frame
 
@@ -50,6 +56,7 @@ class BaseTab(tk.Frame):
         button_frame = tk.Frame(self, bg=COLORS["bg_light"])
         button_frame.grid(row=row, column=0, columnspan=2, pady=15)
 
+        # 使用固定宽度的按钮
         button = tk.Button(button_frame, text=text, command=self.safe_execute(command), **STYLES["action_button"])
         button.pack(padx=10, pady=5)
 
@@ -69,8 +76,7 @@ class BaseTab(tk.Frame):
         self.rowconfigure(row, weight=1)
 
         # 添加状态区标题
-        status_label = tk.Label(status_frame, text="状态信息", anchor="w",
-                                **STYLES["subtitle_label"] if "subtitle_label" in STYLES else STYLES["label"])
+        status_label = tk.Label(status_frame, text="状态信息", anchor="w", **STYLES["subtitle_label"])
         status_label.pack(side=tk.TOP, fill=tk.X, pady=(0, 5))
 
         # 创建内部框架用于文本和滚动条
