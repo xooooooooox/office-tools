@@ -23,9 +23,12 @@ class ConversionTab(BaseTab):
 
     def create_widgets(self):
         """创建UI组件"""
+        # 添加标题
+        self.create_title("文件格式转换 (Word → PDF)")
+
         # 选择文件
         self.files_btn, self.files_label, _ = self.create_file_selector(
-            row=0,
+            row=1,
             button_text="选择 Word 文件",
             label_text="未选择文件",
             command=self.choose_word_files
@@ -33,7 +36,7 @@ class ConversionTab(BaseTab):
 
         # 选择输出目录
         self.output_btn, self.output_label, _ = self.create_file_selector(
-            row=1,
+            row=2,
             button_text="选择输出目录",
             label_text="未选择输出目录",
             command=self.choose_output_dir
@@ -41,7 +44,7 @@ class ConversionTab(BaseTab):
 
         # 转换按钮
         self.convert_btn = self.create_action_button(
-            row=2,
+            row=4,
             text="开始转换",
             command=self.start_conversion
         )
@@ -50,7 +53,7 @@ class ConversionTab(BaseTab):
         self.progress_var, self.progress_bar = self.create_progress_bar()
 
         # 状态文本区
-        self.status_text = self.create_status_area(row=3)
+        self.status_text = self.create_status_area(row=5)
 
     def choose_word_files(self):
         """选择Word文件"""
@@ -121,7 +124,7 @@ class ConversionTab(BaseTab):
             return
 
         # 显示进度条
-        self.progress_bar.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="we")
+        self.progress_bar.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="we")
 
         # 禁用按钮，防止重复操作
         self.toggle_buttons(enabled=False)

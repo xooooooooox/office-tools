@@ -22,9 +22,12 @@ class CourtMatchTab(BaseTab):
 
     def create_widgets(self):
         """创建UI组件"""
+        # 添加标题
+        self.create_title("辖区法院匹配")
+
         # 选取"区划 CSV"按钮
         self.mapping_btn, self.mapping_label, _ = self.create_file_selector(
-            row=0,
+            row=1,
             button_text="选取辖区法院明细 CSV",
             label_text="未选择辖区法院明细 CSV",
             command=self.choose_mapping_file,
@@ -33,7 +36,7 @@ class CourtMatchTab(BaseTab):
 
         # 选取"地址 TXT"按钮
         self.address_btn, self.address_label, _ = self.create_file_selector(
-            row=1,
+            row=2,
             button_text="选取地址明细 TXT",
             label_text="未选择地址明细 TXT",
             command=self.choose_address_file,
@@ -42,7 +45,7 @@ class CourtMatchTab(BaseTab):
 
         # 选取"输出 CSV"按钮
         self.output_btn, self.output_label, _ = self.create_file_selector(
-            row=2,
+            row=3,
             button_text="选择输出 CSV",
             label_text="未选择输出文件",
             command=self.choose_output_file
@@ -50,13 +53,13 @@ class CourtMatchTab(BaseTab):
 
         # "开始匹配"按钮
         self.match_btn = self.create_action_button(
-            row=3,
+            row=4,
             text="开始匹配",
             command=self.start_match
         )
 
         # 状态输出区
-        self.status_text = self.create_status_area(row=4)
+        self.status_text = self.create_status_area(row=5)
 
     def choose_mapping_file(self):
         """选择辖区法院明细CSV文件"""

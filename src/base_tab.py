@@ -3,6 +3,8 @@ import tkinter as tk
 import traceback
 from tkinter import ttk, messagebox
 
+from ui_styles import COLORS, STYLES, PROGRESS_STYLE
+
 
 class BaseTab(tk.Frame):
     """
@@ -10,45 +12,75 @@ class BaseTab(tk.Frame):
     """
 
     def __init__(self, master=None):
-        super().__init__(master)
+        super().__init__(master, bg=COLORS["bg_light"], padx=15, pady=15)
         self.master = master
+
+        # 创建标题样式
+        self.style = ttk.Style()
+        self.style.configure("Custom.TProgressbar",
+                             troughcolor=PROGRESS_STYLE["troughcolor"],
+                             background=PROGRESS_STYLE["background"],
+                             foreground=PROGRESS_STYLE["foreground"])
+
+    def create_title(self, text):
+        """创建标题标签"""
+        title_frame = tk.Frame(self, bg=COLORS["bg_light"])
+        title_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 15))
+
+        title = tk.Label(title_frame, text=text, **STYLES["title_label"])
+        title.pack(side=tk.LEFT, fill=tk.X)
+
+        return title_frame
 
     def create_file_selector(self, row, button_text, label_text, command, file_types=None):
         """创建文件选择器组件（按钮+标签）"""
-        frame = tk.Frame(self)
+        frame = tk.Frame(self, **STYLES["file_frame"])
         frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
 
-        button = tk.Button(frame, text=button_text, command=self.safe_execute(command))
+        button = tk.Button(frame, text=button_text, command=self.safe_execute(command), **STYLES["button"])
         button.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-        label = tk.Label(frame, text=label_text, anchor="w")
+        label = tk.Label(frame, text=label_text, anchor="w", **STYLES["label"])
         label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
         return button, label, frame
 
     def create_action_button(self, row, text, command):
         """创建操作按钮（如"开始生成"、"开始匹配"等）"""
-        button = tk.Button(self, text=text, command=self.safe_execute(command))
-        button.grid(row=row, column=0, columnspan=2, pady=10)
+        button_frame = tk.Frame(self, bg=COLORS["bg_light"])
+        button_frame.grid(row=row, column=0, columnspan=2, pady=15)
+
+        button = tk.Button(button_frame, text=text, command=self.safe_execute(command), **STYLES["action_button"])
+        button.pack(padx=10, pady=5)
+
         return button
 
     def create_progress_bar(self):
         """创建进度条"""
         progress_var = tk.DoubleVar(value=0)
-        progress_bar = ttk.Progressbar(self, variable=progress_var, maximum=100)
+        progress_bar = ttk.Progressbar(self, style="Custom.TProgressbar", variable=progress_var, maximum=100)
         return progress_var, progress_bar
 
     def create_status_area(self, row):
         """创建带滚动条的状态文本区域"""
-        status_frame = tk.Frame(self)
+        status_frame = tk.Frame(self, bg=COLORS["bg_light"], padx=5, pady=5)
         status_frame.grid(row=row, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(row, weight=1)
 
-        scrollbar = tk.Scrollbar(status_frame)
+        # 添加状态区标题
+        status_label = tk.Label(status_frame, text="状态信息", anchor="w",
+                                **STYLES["subtitle_label"] if "subtitle_label" in STYLES else STYLES["label"])
+        status_label.pack(side=tk.TOP, fill=tk.X, pady=(0, 5))
+
+        # 创建内部框架用于文本和滚动条
+        text_frame = tk.Frame(status_frame, bg=COLORS["white"], relief="sunken", borderwidth=1)
+        text_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        scrollbar = tk.Scrollbar(text_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        status_text = tk.Text(status_frame, width=50, height=10, yscrollcommand=scrollbar.set)
+        status_text = tk.Text(text_frame, yscrollcommand=scrollbar.set, **STYLES["status_text"])
         status_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=status_text.yview)
 

@@ -19,6 +19,7 @@ from court_match import (
 from court_match_tab import CourtMatchTab
 # 引入自定义模块
 from generate_tab import GenerateTab
+from ui_styles import COLORS, FONTS
 
 
 def setup_exception_logging():
@@ -116,6 +117,33 @@ def generate_docs(template_path, excel_path, output_dir, progress_callback=None)
         raise e
 
 
+def setup_styles(root):
+    """设置应用程序样式"""
+    # 设置窗口图标和标题栏
+    root.title("Office Tools")
+
+    # 设置窗口背景色
+    root.configure(bg=COLORS["bg_light"])
+
+    # 创建自定义样式
+    style = ttk.Style()
+
+    # 配置Notebook样式
+    style.configure("TNotebook", background=COLORS["bg_light"], borderwidth=0)
+    style.configure("TNotebook.Tab", background=COLORS["secondary"], foreground=COLORS["white"],
+                    padding=[10, 5], font=FONTS["button"])
+    style.map("TNotebook.Tab", background=[("selected", COLORS["primary"])],
+              foreground=[("selected", COLORS["white"])])
+
+    # 配置进度条样式
+    style.configure("Custom.TProgressbar",
+                    troughcolor=COLORS["light"],
+                    background=COLORS["success"])
+
+    # 配置Frame样式
+    style.configure("TFrame", background=COLORS["bg_light"])
+
+
 def main():
     """主程序入口"""
     # 设置异常日志记录
@@ -123,16 +151,33 @@ def main():
 
     # 创建主窗口
     root = tk.Tk()
-    root.title("office-tools")
-    root.geometry("600x450")
+    root.title("Office Tools")
+    root.geometry("700x550")  # 稍微增大窗口尺寸
+
+    # 设置应用程序样式
+    setup_styles(root)
 
     # 使窗口可调整大小时，内容也随之调整
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
 
     try:
-        notebook = ttk.Notebook(root)
-        notebook.pack(fill="both", expand=True)
+        # 创建主框架
+        main_frame = tk.Frame(root, bg=COLORS["bg_light"], padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 创建标题栏
+        header_frame = tk.Frame(main_frame, bg=COLORS["primary"], padx=15, pady=10)
+        header_frame.pack(fill=tk.X, pady=(0, 10))
+
+        title_label = tk.Label(header_frame, text="Office Tools",
+                               font=("Helvetica", 16, "bold"),
+                               fg=COLORS["white"], bg=COLORS["primary"])
+        title_label.pack(side=tk.LEFT)
+
+        # 创建选项卡
+        notebook = ttk.Notebook(main_frame, style="TNotebook")
+        notebook.pack(fill=tk.BOTH, expand=True)
 
         # Tab1: 批量生成起诉状
         generate_tab = GenerateTab(notebook, doc_generator=generate_docs)
@@ -149,9 +194,19 @@ def main():
         conversion_tab = ConversionTab(notebook)
         notebook.add(conversion_tab, text="文件格式转换")
 
-        # 添加版本信息
-        version_label = tk.Label(root, text="版本: 1.0.1", anchor="e")
-        version_label.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=2)
+        # 添加底部状态栏
+        footer_frame = tk.Frame(main_frame, bg=COLORS["bg_light"], padx=5, pady=5)
+        footer_frame.pack(fill=tk.X, side=tk.BOTTOM)
+
+        version_label = tk.Label(footer_frame, text="版本: 1.0.2",
+                                 fg=COLORS["secondary"], bg=COLORS["bg_light"],
+                                 font=FONTS["small"])
+        version_label.pack(side=tk.RIGHT)
+
+        copyright_label = tk.Label(footer_frame, text="© 2023 Office Tools",
+                                   fg=COLORS["secondary"], bg=COLORS["bg_light"],
+                                   font=FONTS["small"])
+        copyright_label.pack(side=tk.LEFT)
 
         root.mainloop()
     except Exception as e:

@@ -22,9 +22,12 @@ class GenerateTab(BaseTab):
 
     def create_widgets(self):
         """创建UI组件"""
+        # 添加标题
+        self.create_title("批量生成 Word 文档")
+
         # 选择 Word 模板
         self.template_btn, self.template_label, _ = self.create_file_selector(
-            row=0,
+            row=1,
             button_text="选择 Word 模板",
             label_text="未选择模板",
             command=self.choose_template,
@@ -33,7 +36,7 @@ class GenerateTab(BaseTab):
 
         # 选择 Excel 数据
         self.excel_btn, self.excel_label, _ = self.create_file_selector(
-            row=1,
+            row=2,
             button_text="选择 Excel 数据",
             label_text="未选择 Excel",
             command=self.choose_excel,
@@ -42,7 +45,7 @@ class GenerateTab(BaseTab):
 
         # 选择输出目录
         self.output_btn, self.output_dir_label, _ = self.create_file_selector(
-            row=2,
+            row=3,
             button_text="选择输出目录",
             label_text="未选择输出目录",
             command=self.choose_output_dir
@@ -53,13 +56,13 @@ class GenerateTab(BaseTab):
 
         # 生成按钮
         self.generate_btn = self.create_action_button(
-            row=4,
+            row=5,
             text="开始生成",
             command=self.start_generate
         )
 
         # 状态输出区
-        self.status_text = self.create_status_area(row=5)
+        self.status_text = self.create_status_area(row=6)
 
     def choose_template(self):
         """选择Word模板文件"""
@@ -98,7 +101,7 @@ class GenerateTab(BaseTab):
             return
 
         # 显示进度条
-        self.progress_bar.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="we")
+        self.progress_bar.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="we")
 
         def progress_callback(current, total):
             """更新进度条的回调函数"""
