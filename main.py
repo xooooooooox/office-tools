@@ -285,24 +285,44 @@ class ConversionTab(tk.Frame):
         self.create_widgets()
 
     def create_widgets(self):
-        self.select_files_btn = tk.Button(self, text="选择 Word 文件", command=self.choose_word_files)
-        self.select_files_btn.grid(row=0, column=0, padx=5, pady=5)
-        self.files_label = tk.Label(self, text="未选择文件")
-        self.files_label.grid(row=0, column=1, padx=5, pady=5)
+        # Create a frame for file selection
+        file_frame = tk.Frame(self)
+        file_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
 
-        self.select_output_btn = tk.Button(self, text="选择输出目录", command=self.choose_output_dir)
-        self.select_output_btn.grid(row=1, column=0, padx=5, pady=5)
-        self.output_label = tk.Label(self, text="未选择输出目录")
-        self.output_label.grid(row=1, column=1, padx=5, pady=5)
+        self.select_files_btn = tk.Button(file_frame, text="选择 Word 文件", command=self.choose_word_files)
+        self.select_files_btn.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.files_label = tk.Label(file_frame, text="未选择文件")
+        self.files_label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
+        # Create a frame for output directory selection
+        output_frame = tk.Frame(self)
+        output_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+
+        self.select_output_btn = tk.Button(output_frame, text="选择输出目录", command=self.choose_output_dir)
+        self.select_output_btn.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.output_label = tk.Label(output_frame, text="未选择输出目录")
+        self.output_label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+        # Convert button
         self.convert_btn = tk.Button(self, text="开始转换", command=self.start_conversion)
         self.convert_btn.grid(row=2, column=0, columnspan=2, pady=10)
 
+        # Progress bar (initially not shown)
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(self, variable=self.progress_var, maximum=100)
 
-        self.status_text = tk.Text(self, width=50, height=10)
-        self.status_text.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+        # Status text with scrollbar
+        status_frame = tk.Frame(self)
+        status_frame.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(3, weight=1)
+
+        scrollbar = tk.Scrollbar(status_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.status_text = tk.Text(status_frame, width=50, height=10, yscrollcommand=scrollbar.set)
+        self.status_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.status_text.yview)
 
     def choose_word_files(self):
         files = filedialog.askopenfilenames(
@@ -311,8 +331,8 @@ class ConversionTab(tk.Frame):
         )
         if files:
             self.word_files = list(files)
-            display_names = [os.path.basename(f) for f in self.word_files]
-            self.files_label.config(text=", ".join(display_names))
+            # Only show the count of files instead of all filenames
+            self.files_label.config(text=f"已选择 {len(self.word_files)} 个文件")
 
     def choose_output_dir(self):
         dir_ = filedialog.askdirectory(title="选择输出目录")
@@ -327,7 +347,13 @@ class ConversionTab(tk.Frame):
             self.status_text.insert(tk.END, "请先选择 Word 文件和输出目录！\n")
             return
 
+        # Show progress bar
         self.progress_bar.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="we")
+
+        # Disable buttons during conversion
+        self.select_files_btn.config(state=tk.DISABLED)
+        self.select_output_btn.config(state=tk.DISABLED)
+        self.convert_btn.config(state=tk.DISABLED)
 
         total = len(self.word_files)
         for idx, file in enumerate(self.word_files):
@@ -335,7 +361,7 @@ class ConversionTab(tk.Frame):
             pdf_file = os.path.join(self.output_dir, base_name + ".pdf")
             try:
                 # 调用 LibreOffice 的命令行转换功能
-                # 注意：确保 “soffice” 命令可用，如需路径调整请修改此处
+                # 注意：确保 "soffice" 命令可用，如需路径调整请修改此处
                 subprocess.run([
                     "soffice",
                     "--headless",
@@ -344,8 +370,10 @@ class ConversionTab(tk.Frame):
                     "--outdir", self.output_dir
                 ], check=True)
                 self.status_text.insert(tk.END, f"已转换: {os.path.basename(file)} -> {base_name}.pdf\n")
+                self.status_text.see(tk.END)  # Auto-scroll to the bottom
             except subprocess.CalledProcessError as e:
                 self.status_text.insert(tk.END, f"转换失败: {os.path.basename(file)}，错误信息: {e}\n")
+                self.status_text.see(tk.END)  # Auto-scroll to the bottom
 
             progress_percentage = ((idx + 1) / total) * 100
             self.progress_var.set(progress_percentage)
@@ -353,6 +381,12 @@ class ConversionTab(tk.Frame):
 
         msg = f"转换完成，共转换 {total} 个文件！"
         self.status_text.insert(tk.END, msg + "\n")
+
+        # Re-enable buttons after conversion
+        self.select_files_btn.config(state=tk.NORMAL)
+        self.select_output_btn.config(state=tk.NORMAL)
+        self.convert_btn.config(state=tk.NORMAL)
+
         messagebox.showinfo("提示", msg)
 
 
