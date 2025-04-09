@@ -1,1 +1,1 @@
-pyinstaller --noconfirm --windowed --name 'office-tools' main.py
+pyinstaller --noconfirm --windowed --name 'office-tools' src/main.py
