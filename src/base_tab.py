@@ -1,4 +1,6 @@
+import sys
 import tkinter as tk
+import traceback
 from tkinter import ttk, messagebox
 
 
@@ -16,17 +18,17 @@ class BaseTab(tk.Frame):
         frame = tk.Frame(self)
         frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
 
-        button = tk.Button(frame, text=button_text, command=command)
+        button = tk.Button(frame, text=button_text, command=self.safe_execute(command))
         button.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-        label = tk.Label(frame, text=label_text)
+        label = tk.Label(frame, text=label_text, anchor="w")
         label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
         return button, label, frame
 
     def create_action_button(self, row, text, command):
         """创建操作按钮（如"开始生成"、"开始匹配"等）"""
-        button = tk.Button(self, text=text, command=command)
+        button = tk.Button(self, text=text, command=self.safe_execute(command))
         button.grid(row=row, column=0, columnspan=2, pady=10)
         return button
 
@@ -65,3 +67,26 @@ class BaseTab(tk.Frame):
             self.status_text.delete("1.0", tk.END)
         self.status_text.insert(tk.END, text + "\n")
         self.status_text.see(tk.END)  # 自动滚动到底部
+        # 强制更新UI
+        self.update_idletasks()
+
+    def safe_execute(self, func):
+        """
+        包装函数以捕获和显示异常
+        这样用户界面不会因为未捕获的异常而崩溃
+        """
+
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                error_msg = f"操作过程中发生错误: {str(e)}"
+                if hasattr(self, 'status_text'):
+                    self.update_status(error_msg)
+                    self.update_status(traceback.format_exc())
+                self.show_message("错误", error_msg, error=True)
+                # 记录到控制台
+                print(error_msg, file=sys.stderr)
+                traceback.print_exc()
+
+        return wrapper
